@@ -1,17 +1,24 @@
 import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Task } from './task.entity';
+import { Task, TaskStatus } from './task.entity';
+import { UsersService } from '../users/users.service';
+import { CreateTaskDto } from './dto/create-task.dto';
 
 @Injectable()
 export class TasksService {
   constructor(
     @Optional() @InjectRepository(Task)
     private readonly tasksRepository: Repository<Task>,
+    private readonly usersService: UsersService,
   ) {}
 
-  findAll(): Promise<Task[]> {
-    return this.tasksRepository.find({ relations: { user: true } });
+  async findByUser(userId: string): Promise<Task[]> {
+    await this.usersService.findOne(userId);
+    return this.tasksRepository.find({
+      where: { user: { id: userId } },
+      relations: { user: true },
+    });
   }
 
   async findOne(id: string): Promise<Task> {
@@ -23,15 +30,21 @@ export class TasksService {
     return task;
   }
 
-  create(data: Partial<Task>): Promise<Task> {
-    const task = this.tasksRepository.create(data);
+  async create(dto: CreateTaskDto): Promise<Task> {
+    const user = await this.usersService.findOne(dto.userId);
+    const task = this.tasksRepository.create({
+      title: dto.title,
+      description: dto.description,
+      dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+      user,
+    });
     return this.tasksRepository.save(task);
   }
 
-  async update(id: string, data: Partial<Task>): Promise<Task> {
-    await this.findOne(id);
-    await this.tasksRepository.update(id, data);
-    return this.findOne(id);
+  async updateStatus(id: string, status: TaskStatus): Promise<Task> {
+    const task = await this.findOne(id);
+    task.status = status;
+    return this.tasksRepository.save(task);
   }
 
   async remove(id: string): Promise<void> {

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
@@ -8,7 +9,7 @@ import { User } from './users/user.entity';
 import { Task } from './tasks/task.entity';
 
 const DB_HOST = process.env.DB_HOST;
-
+console.log(DB_HOST)
 @Module({
   imports: [
     ...(DB_HOST
