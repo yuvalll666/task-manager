@@ -31,6 +31,13 @@ const baseUser = {
     createdAt: "2026-12-31",
 };
 
+const task = {
+    ...baseTask,
+    id: "task-1",
+    createdAt: "2026-12-31",
+    user: baseUser,
+};
+
 const notExistsId = "not-existing-id";
 
 describe("TasksService", () => {
@@ -86,20 +93,16 @@ describe("TasksService", () => {
             mockUsersService.findOne.mockResolvedValue(baseUser);
             mockTaskRepository.find.mockResolvedValue([
                 {
+                    ...task,
                     title: "Walk the dog",
                     description: "Taking the dog out for a walk",
-                    dueDate: "2026-12-31",
-                    createAt: "2026-12-31",
                     status: TaskStatus.PENDING,
-                    user: baseUser,
                 },
                 {
+                    ...task,
                     title: "Take the trash",
                     description: "Take the trash out to throw away",
-                    dueDate: "2026-01-01",
-                    createAt: "2026-12-31",
                     status: TaskStatus.DONE,
-                    user: baseUser,
                 },
             ]);
 
@@ -130,6 +133,25 @@ describe("TasksService", () => {
 
             expect(tasks).toEqual([]);
             expect(tasks.length).toBe(0);
+        });
+    });
+
+    describe("findOne()", () => {
+        it("should return a task by id", async () => {
+            mockTaskRepository.findOne.mockResolvedValue(task);
+            const result = await tasksService.findOne(task.id);
+            expect(result).toEqual(task);
+            expect(mockTaskRepository.findOne).toHaveBeenCalledWith({
+                where: { id: task.id },
+                relations: { user: true },
+            });
+        });
+
+        it("should throw NotFoundException when task not found", async () => {
+            mockTaskRepository.findOne.mockResolvedValue(null);
+            await expect(tasksService.findOne(notExistsId)).rejects.toThrow(
+                NotFoundException,
+            );
         });
     });
 
